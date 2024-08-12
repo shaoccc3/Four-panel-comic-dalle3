@@ -1,0 +1,65 @@
+<template>
+  <div id="app">
+    <h1>詩歌生成器</h1>
+    <textarea
+      v-model="prompt"
+      rows="4"
+      cols="50"
+      placeholder="請輸入你的提示..."
+    ></textarea>
+    <br />
+    <button @click="generatePoem">生成詩歌</button>
+    <h2>生成的詩歌：</h2>
+    <div v-if="poem">{{ poem }}</div>
+    <div v-else-if="error">{{ error }}</div>
+  </div>
+</template>
+
+<script>
+  import axios from "axios";
+
+  export default {
+    data() {
+      return {
+        prompt: "",
+        poem: "",
+        error: "",
+      };
+    },
+    methods: {
+      async generatePoem() {
+        if (!this.prompt.trim()) {
+          this.error = "提示不得為空";
+          this.poem = "";
+          return;
+        }
+
+        try {
+          this.error = "";
+          const response = await axios.post("/generate_poem", {
+            prompt: this.prompt,
+          });
+          this.poem = response.data.poem;
+        } catch (err) {
+          console.error("Error:", err);
+          if (err.response) {
+            this.error = `Error: ${err.response.data.error}`;
+          } else {
+            this.error = "An unexpected error occurred.";
+          }
+          this.poem = "";
+        }
+      },
+    },
+  };
+</script>
+
+<style scoped>
+  textarea {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  button {
+    margin-bottom: 20px;
+  }
+</style>

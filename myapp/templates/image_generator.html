@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <h1>Image Generator</h1>
+      <input v-model="prompt" placeholder="Enter prompt" />
+
+      <h3>Select Style:</h3>
+      <button @click="setStyle('Pixar')">Pixar Style</button>
+      <button @click="setStyle('Realistic')">Realistic Style</button>
+      <button @click="setStyle('Anime')">Anime Style</button>
+      <button @click="setStyle('Minimalist')">Minimalist Style</button>
+
+      <button @click="generateImage">Generate Image</button>
+
+      <div v-if="imageUrl">
+        <h2>Generated Image:</h2>
+        <img :src="imageUrl" alt="Generated Image" />
+      </div>
+      <div v-if="error">
+        <h2>Error:</h2>
+        <p>{{ error }}</p>
+      </div>
+    </div>
+
+    <script>
+      new Vue({
+        el: "#app",
+        data: {
+          prompt: "",
+          selectedStyle: "",
+          imageUrl: "",
+          error: "",
+        },
+        methods: {
+          setStyle(style) {
+            this.selectedStyle = style;
+          },
+          async generateImage() {
+            try {
+              const styleKeywords = {
+                Pixar:
+                  "Pixar style, vibrant colors, 3D cartoon, realistic lighting, expressive characters",
+                Realistic:
+                  "hyper-realistic, detailed textures, true-to-life lighting",
+                Anime:
+                  "Anime style, vibrant colors, sharp lines, expressive characters",
+                Minimalist:
+                  "minimalist, simple shapes, limited colors, clean design",
+              };
+
+              const fullPrompt = `${this.prompt}, ${
+                styleKeywords[this.selectedStyle] || ""
+              }`;
+
+              const response = await axios.post("/generate-image/create/", {
+                prompt: fullPrompt,
+              });
+              this.imageUrl = response.data.image_url;
+              this.error = "";
+            } catch (error) {
+              this.error = error.response.data.error || "An error occurred";
+              this.imageUrl = "";
+            }
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
