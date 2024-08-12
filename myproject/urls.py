@@ -20,7 +20,16 @@ from django.http import HttpResponse
 
 # 根URL視圖函數
 def home(request):
-    return HttpResponse("Welcome to the home page!")
+    return HttpResponse(""""
+        <html>
+            <body>
+                <h1>Welcome to the home page!</h1>
+                <button onclick="window.location.href='http://127.0.0.1:8080/generate-image/'">
+                    Go to Generate Image
+                </button>
+            </body>
+        </html>
+    """)
 
 urlpatterns = [
     path('admin/', admin.site.urls),

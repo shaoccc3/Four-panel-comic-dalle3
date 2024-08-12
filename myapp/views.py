@@ -3,12 +3,14 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 import os
+from django.core.files.storage import default_storage
+from PyPDF2 import PdfReader
 from openai import OpenAI
 
 # 從環境變數中獲取 API 金鑰
 client = OpenAI(
     # defaults to os.environ.get("OPENAI_API_KEY")
-    api_key="",
+    api_key=os.getenv("OPENAI_API_KEY"),
 )
 
 def image_generator_page(request):
@@ -37,6 +39,45 @@ def generate_image(request):
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
         except Exception as e:  # 捕捉所有其他可能的異常
+            return JsonResponse({'error': 'An unexpected error occurred: ' + str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+@csrf_exempt
+def upload_pdf(request):
+    if request.method == 'POST':
+        try:
+            pdf_file = request.FILES.get('file')
+            if not pdf_file:
+                return JsonResponse({'error': 'No file provided'}, status=400)
+
+            # 儲存 PDF 文件到伺服器
+            file_path = default_storage.save(f"uploads/{pdf_file.name}", pdf_file)
+            pdf_reader = PdfReader(open(file_path, "rb"))
+
+            image_urls = []
+            for page_num in range(len(pdf_reader.pages)):  # 使用 len(pdf_reader.pages) 來獲取頁數
+                    page = pdf_reader.pages[page_num]
+                    text = page.extract_text()
+
+                    if text.strip():  # 確保文本內容非空
+                        prompt = f"Four-panel comic strip with consistent character design and style. Maintain high resolution, avoid distortion or blurring There should be a story about the picture below the picture+ {text.strip()}"
+                        response = client.images.generate(
+                            model="dall-e-3",
+                            prompt=prompt,
+                            size="1024x1024",
+                            n=1,
+                        )
+                        image_url = response.data[0].url if response.data else None
+                        if image_url:
+                            image_urls.append(image_url)
+
+            if not image_urls:
+                return JsonResponse({'error': 'No valid content found to generate images.'}, status=400)
+
+            return JsonResponse({'image_urls': image_urls})
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        except Exception as e:
             return JsonResponse({'error': 'An unexpected error occurred: ' + str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)

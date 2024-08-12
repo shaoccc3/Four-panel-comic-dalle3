@@ -1,8 +1,9 @@
 from django.urls import path
-from .views import generate_image, image_generator_page
+from .views import generate_image, image_generator_page,upload_pdf
 
 urlpatterns = [
     path('', image_generator_page, name='image_generator_page'),
     path('create/', generate_image, name='generate_image'),
+    path('upload-pdf/', upload_pdf, name='upload_pdf'),
     # path('text',templates,name='text')
 ]

@@ -11,6 +11,7 @@
     <div id="app">
       <h1>Image Generator</h1>
       <input v-model="prompt" placeholder="Enter prompt" />
+      <input type="file" @change="onFileChange" accept="application/pdf" />
 
       <h3>Select Style:</h3>
       <button @click="setStyle('Pixar')">Pixar Style</button>
@@ -23,6 +24,10 @@
       <div v-if="imageUrl">
         <h2>Generated Image:</h2>
         <img :src="imageUrl" alt="Generated Image" />
+      </div>
+      <div v-if="imageUrls">
+        <h2>Generated Image:</h2>
+        <img :src="imageUrls" alt="Generated Image" />
       </div>
       <div v-if="error">
         <h2>Error:</h2>
@@ -38,10 +43,38 @@
           selectedStyle: "",
           imageUrl: "",
           error: "",
+          imageUrls: "",
         },
         methods: {
           setStyle(style) {
             this.selectedStyle = style;
+          },
+          onFileChange(event) {
+            const file = event.target.files[0];
+            if (file) {
+              this.uploadFile(file);
+            }
+          },
+          async uploadFile(file) {
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+              const response = await axios.post(
+                "/generate-image/upload-pdf/",
+                formData,
+                {
+                  headers: {
+                    "Content-Type": "multipart/form-data",
+                  },
+                }
+              );
+              this.imageUrls = response.data.image_urls; // 接收多張圖片的 URL
+              this.error = "";
+            } catch (error) {
+              this.error = error.response.data.error || "An error occurred";
+              this.imageUrls = [];
+            }
           },
           async generateImage() {
             try {
