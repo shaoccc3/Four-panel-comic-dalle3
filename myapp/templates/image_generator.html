@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% comment %} <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -106,5 +106,89 @@
         },
       });
     </script>
+  </body>
+</html>
+{% endcomment %}
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="csrf-token" content="{{ csrf_token }}" />
+    <title>Image Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <div>
+        <h2>Generate Image from News</h2>
+        <form @submit.prevent="generateImage">
+          <div>
+            <label for="title">News Title:</label>
+            <input type="text" v-model="title" required />
+          </div>
+          <div>
+            <label for="content">News Content:</label>
+            <textarea v-model="content" required></textarea>
+          </div>
+          <button type="submit">Generate Image</button>
+        </form>
+
+        <div v-if="imageUrls.length">
+          <h3>Generated Images:</h3>
+          <div v-for="(url, index) in imageUrls" :key="index">
+            <img :src="url" :alt="'Generated Image ' + (index + 1)" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            title: "",
+            content: "",
+            imageUrls: [],
+          };
+        },
+        methods: {
+          async generateImage() {
+            try {
+              const response = await axios.post("/generate-image/news/", {
+                title: this.title,
+                content: this.content,
+              });
+
+              this.imageUrls = response.data.image_urls;
+            } catch (error) {
+              if (error.response) {
+                alert(error.response.data.error);
+              } else {
+                alert("An error occurred: " + error.message);
+              }
+            }
+          },
+        },
+      });
+    </script>
+
+    <style>
+      form {
+        margin-bottom: 20px;
+      }
+      button {
+        margin-top: 10px;
+      }
+      img {
+        display: block;
+        margin-top: 20px;
+        max-width: 100%;
+        height: auto;
+      }
+    </style>
   </body>
 </html>

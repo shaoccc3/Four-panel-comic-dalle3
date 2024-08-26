@@ -6,6 +6,8 @@ import os
 from django.core.files.storage import default_storage
 from PyPDF2 import PdfReader
 from openai import OpenAI
+import requests
+
 
 # 從環境變數中獲取 API 金鑰
 client = OpenAI(
@@ -78,6 +80,64 @@ def upload_pdf(request):
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
         except Exception as e:
+            return JsonResponse({'error': 'An unexpected error occurred: ' + str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+#新聞生圖
+@csrf_exempt
+def generate_news(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            title = data.get('title', '').strip()
+            content = data.get('content', '').strip()
+
+            if not title or not content:
+                return JsonResponse({'error': 'Title and content are required'}, status=400)
+
+            # 根據新聞標題和內容生成 prompt
+            prompt = f"Generate a high-resolution image that represents the theme of this news article. Title: {title}. Content: {content}"
+            
+            # 設定圖片保存路徑，請確保該目錄存在
+            save_directory = 'D://'  # 替換為你想要的保存路徑
+            if not os.path.exists(save_directory):
+                os.makedirs(save_directory)
+            
+            image_urls = []
+            for i in range(2):  # 執行十次
+                # 使用你的圖像生成邏輯
+                response = client.images.generate(
+                    model="dall-e-3",
+                    prompt=prompt,
+                    size="1792x1024",
+                    quality="standard",
+                    n=1,
+                )
+
+                # 獲取生成的圖片URL
+                image_url = response.data[0].url if response.data else None
+                
+                if image_url:
+                    # 打印生成的URL以進行調試
+                    print(f"Generated image URL ({i+1}):", image_url)
+                    
+                    # 下載圖片
+                    image_response = requests.get(image_url)
+                    if image_response.status_code == 200:
+                        image_path = os.path.join(save_directory, f'image_{i+1}.png')
+                        with open(image_path, 'wb') as f:
+                            f.write(image_response.content)
+                        image_urls.append(image_url)
+                    else:
+                        print(f"Failed to download image {i+1}")
+                else:
+                    print(f"No image generated for iteration {i+1}")
+                    break  # 如果沒有生成圖片，終止迴圈
+            
+            return JsonResponse({'image_urls': image_urls})
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        except Exception as e:  # 捕捉所有其他可能的異常
             return JsonResponse({'error': 'An unexpected error occurred: ' + str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
